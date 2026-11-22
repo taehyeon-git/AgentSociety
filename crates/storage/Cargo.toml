@@ -1,0 +1,24 @@
+[package]
+name = "agentsociety-storage"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Checked checkpoints, streaming replay and transactional SQLite runs"
+
+[features]
+default = []
+llm = ["agentsociety-simulation/llm"]
+
+[dependencies]
+agentsociety-core.workspace = true
+agentsociety-simulation.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+rusqlite.workspace = true
+sha2.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true

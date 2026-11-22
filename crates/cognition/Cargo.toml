@@ -1,0 +1,31 @@
+[package]
+name = "agentsociety-cognition"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Read-only goal-sensitive decision policies"
+
+[features]
+default = []
+llm = ["dep:tokio", "dep:reqwest", "dep:serde_json", "dep:agentsociety-memory", "dep:agentsociety-world", "dep:agentsociety-economy"]
+
+[dependencies]
+agentsociety-core.workspace = true
+agentsociety-memory = { workspace = true, optional = true }
+agentsociety-world = { workspace = true, optional = true }
+agentsociety-economy = { workspace = true, optional = true }
+serde.workspace = true
+url.workspace = true
+serde_json = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+
+[dev-dependencies]
+agentsociety-world.workspace = true
+agentsociety-economy.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true
+

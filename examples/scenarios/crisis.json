@@ -1,0 +1,8 @@
+{
+  "name": "crisis",
+  "events": [
+    { "tick": 80, "label": "Food supply disruption", "intervention": { "kind": "supply", "resource": "food", "regeneration_bps": 2000, "duration": 60 } },
+    { "tick": 80, "label": "Loss of unreserved food stocks", "intervention": { "kind": "inventory_loss", "resource": "food", "fraction_bps": 5000 } },
+    { "tick": 150, "label": "Metal supply disruption", "intervention": { "kind": "supply", "resource": "metal", "regeneration_bps": 0, "duration": 40 } }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "provider": "openai_compatible",
+  "base_url": "https://api.openai.com/v1",
+  "model": "gpt-4o-mini",
+  "api_key_env": "OPENAI_API_KEY",
+  "timeout_ms": 1500,
+  "max_concurrency": 2,
+  "max_calls_per_tick": 4,
+  "max_total_calls": 100,
+  "min_interval_ticks": 10,
+  "max_output_tokens": 256,
+  "memory_limit": 8
+}

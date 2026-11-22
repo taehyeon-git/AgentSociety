@@ -1,0 +1,26 @@
+{
+  "agents": 100,
+  "seed": 42,
+  "interactions": {
+    "negotiation": true,
+    "cooperation": true,
+    "offer_lifetime_ticks": 4,
+    "goal_review_interval": 20
+  },
+  "organizations": {
+    "enabled": true,
+    "max_members": 6,
+    "membership_stake": 200,
+    "production_interval": 4
+  },
+  "scenario": {
+    "name": "crisis_with_redistribution",
+    "events": [
+      { "tick": 20, "label": "Introduce sales tax and funded redistribution", "intervention": { "kind": "fiscal", "policy": { "sales_tax_bps": 1000, "cash_levy_bps": 50, "redistribution_bps": 10000, "period": 10 } } },
+      { "tick": 80, "label": "Food supply disruption", "intervention": { "kind": "supply", "resource": "food", "regeneration_bps": 2000, "duration": 60 } },
+      { "tick": 80, "label": "Loss of unreserved food stocks", "intervention": { "kind": "inventory_loss", "resource": "food", "fraction_bps": 5000 } },
+      { "tick": 150, "label": "Metal supply disruption", "intervention": { "kind": "supply", "resource": "metal", "regeneration_bps": 0, "duration": 40 } },
+      { "tick": 180, "label": "Retain half of treasury receipts", "intervention": { "kind": "fiscal", "policy": { "sales_tax_bps": 500, "cash_levy_bps": 25, "redistribution_bps": 5000, "period": 10 } } }
+    ]
+  }
+}

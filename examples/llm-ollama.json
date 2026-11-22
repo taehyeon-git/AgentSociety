@@ -1,0 +1,13 @@
+{
+  "provider": "ollama",
+  "base_url": "http://127.0.0.1:11434",
+  "model": "llama3.2:3b",
+  "api_key_env": null,
+  "timeout_ms": 1500,
+  "max_concurrency": 2,
+  "max_calls_per_tick": 4,
+  "max_total_calls": 100,
+  "min_interval_ticks": 10,
+  "max_output_tokens": 256,
+  "memory_limit": 8
+}

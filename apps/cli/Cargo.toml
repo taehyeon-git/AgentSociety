@@ -1,0 +1,33 @@
+[package]
+name = "agentsociety-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Offline AgentSociety simulator, exports, and performance measurements"
+
+[features]
+default = []
+llm = ["agentsociety-simulation/llm", "agentsociety-storage/llm"]
+
+[dependencies]
+agentsociety-core.workspace = true
+agentsociety-simulation.workspace = true
+agentsociety-analytics.workspace = true
+agentsociety-storage.workspace = true
+agentsociety-social.workspace = true
+tempfile.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+dhat = "=0.3.3"
+
+[lints]
+workspace = true
+

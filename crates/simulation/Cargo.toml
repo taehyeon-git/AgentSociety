@@ -1,0 +1,32 @@
+[package]
+name = "agentsociety-simulation"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Authoritative deterministic tick orchestration"
+
+[features]
+default = []
+llm = ["agentsociety-cognition/llm", "dep:tokio"]
+
+[dependencies]
+agentsociety-core.workspace = true
+agentsociety-world.workspace = true
+agentsociety-social.workspace = true
+agentsociety-memory.workspace = true
+agentsociety-economy.workspace = true
+agentsociety-cognition.workspace = true
+agentsociety-analytics.workspace = true
+rand.workspace = true
+rand_chacha.workspace = true
+serde.workspace = true
+tracing.workspace = true
+tokio = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true
+

@@ -1,0 +1,60 @@
+# 경제 모델과 거래 규칙
+
+## 자산과 생산
+
+`Account`의 현금·재고는 총 보유량이며 예약분을 포함합니다. 사용 가능량은 총량에서 예약량을 뺀 값입니다. 화폐는 `u64` 최소 단위, 개인 재고도 `u64`이며 합계와 거래 회전액에는 `u128`을 사용합니다. 양수 가격은 최대 1,000,000, 주문 수량도 최대 1,000,000으로 제한합니다. 덧셈·뺄셈·곱셈이 실패하면 명시적 오류입니다.
+
+| 행동 | 투입 | 산출 |
+| --- | --- | --- |
+| Farmer 식량 생산 | 노동 5, 지역 식량 생산 용량 | `10 + farming / 20` Food |
+| 다른 직업의 자급 농업 | 노동 5, 지역 식량 생산 용량 | 3 Food |
+| Producer 제조 | 노동 5, 4 Wood + 2 Metal | `2 + manufacturing / 80` Goods |
+| 공동 제조 (선택 기능) | Producer의 Metal 2·준비 노동 5, 상대의 Wood 4·노동 5 | Goods 4, 사전 합의한 양의 몫으로 배분 |
+| 목재 채집 | 노동 5, 지역 목재 용량 | `4 + gathering / 25` Wood |
+| 금속 채집 | 노동 5, 지역 채굴 용량 | `2 + gathering / 40` Metal |
+
+지역 용량은 인구를 기준으로 초기 Food/Wood/Metal 각각 30/20/15배, Tick당 충전량은 3/2/1배입니다. 인구 0일 때 환경의 최소 규모는 1로 둡니다. 환경 용량은 소유 재고와 구분합니다. 자원 풀에서 개인 재고로 들어올 때 `ResourceProduced`로 집계하며 충전 자체는 소유 자산을 만들지 않습니다. 금속 충전은 새로운 채굴 기회에 대한 접근을 추상화한 모델 선택입니다.
+
+에이전트의 초기 현금은 설정값의 ±20% 범위에서 시드로 결정합니다. 직업은 ID에 따라 네 직업을 순환 배치하고, 초기 재고·기술은 직업별로 부여합니다. 이후 화폐 발행·급여 지급·세금·대출은 없습니다. Consumer는 원자재를 판매하여 소득을 얻고 Merchant는 재판매 차익을 추구합니다.
+
+## 주문장
+
+1. 주문 접수 시 매수자는 `limit_price × quantity` 현금을 예약하고, 매도자는 수량만큼의 실물을 예약합니다. 부족하면 주문 ID 증가를 포함해 아무 상태도 변경하지 않습니다.
+2. 매수는 높은 가격, 제출 Tick, 주문 ID 순서입니다. 매도는 낮은 가격을 먼저 비교합니다.
+3. 최고 우선순위 매수에 대해 가격이 교차하는 타인 매도를 선택합니다. 매도 가격이 같으면 매수자가 더 신뢰하는 상대를 선호하고, 신뢰까지 같으면 제출 Tick·주문 ID 순서입니다. 더 좋은 가격을 신뢰 때문에 건너뛰지는 않습니다. 자기 주문은 건너뛰되 다른 상대의 거래를 막지 않습니다.
+4. 체결량은 양쪽 잔량 중 작은 값입니다. 체결 가격은 두 주문 중 먼저 제출된 주문의 지정가입니다.
+5. 매수자의 지정가 기준 예약을 체결량만큼 해제하되 실제 지불은 체결가로 계산합니다. 가격 개선분은 즉시 사용 가능한 현금으로 돌아옵니다.
+6. 두 계좌의 다음 상태를 먼저 계산하고 모든 현금·재고·누적 수지·예약 검사를 통과한 경우에만 양쪽을 함께 변경합니다.
+7. Tick 끝에 미체결 잔량을 전부 만료시키고 예약을 해제합니다. 다음 Tick으로 유지되는 GTC 주문은 아직 없습니다.
+
+최신 자원 가격은 해당 Tick의 실제 체결량 가중 평균을 정수 내림한 값입니다. 협상 기능을 켜면 중앙 거래와 수락된 협상 거래를 함께 계산합니다. 체결이 없으면 직전 가격을 유지합니다. 그래서 거래량 0에서 나눗셈을 하지 않으며 가격을 제안만으로 갱신하지 않습니다.
+
+v0.4.0의 매칭 탐색은 정렬된 매도 목록에서 가장 싼 유효 가격대를 찾은 뒤 그 가격대 안에서만 신뢰·시간·ID를 비교합니다. 더 높은 가격대까지 매번 살피는 비용을 줄이되, 앞의 자기 주문·소진 주문을 건너뛰고 부분 체결 후 다음 가격대로 넘어가는 규칙을 유지합니다. 최적화 전후 1,000명·1,000 Tick의 전체 상태 비교와 가격·신뢰·부분 체결 회귀 테스트로 결과의 동일성을 확인합니다.
+
+에이전트의 호가 기준은 `(최근 거래 가격 × 3 + 초기 기준 가격) / 4`입니다. 초기 기준 가격은 에이전트의 장기 예약 가격 성향을 나타냅니다. 절박한 식량 구매에는 높은 배율, 일반 판매에는 낮은 배율, 재판매에는 차익 기준을 적용합니다. 이 호가 규칙과 실제 거래 가격 산출은 별개입니다. 실제 시장을 추정한 모형이나 현실 경제 예측 모델은 아닙니다.
+
+## 불변조건
+
+모든 완료 Tick에서 다음을 검사합니다.
+
+```text
+total_money(t) = total_money(0)
+total_money = personal_cash + organization_cash + treasury_cash
+initial_inventory[r] + cumulative_produced[r]
+  = personal_and_shared_inventory[r] + cumulative_household_consumed[r]
+    + cumulative_production_inputs[r] + cumulative_destroyed[r]
+reserved_cash(agent) = live_buy_proposal_collateral + recurring_contract_cash
+reserved_inventory(agent, resource) = sum(live_sell_and_cooperation_collateral(agent, resource))
+reserved_cash(organization) = recurring_contract_cash(organization)
+initial_cash(owner) + earned(owner) + transfers_in(owner)
+  = wallet(owner) + spent(owner) + transfers_out(owner)
+sum(earned) = sum(spent) = cumulative_trade_value
+sum(transfers_in) = sum(transfers_out)
+```
+
+진행 중 약속이 없으면 예약 합계는 0입니다. 중앙 미체결 주문은 모든 Tick에서 해제됩니다. 양자 제안과 납품 계약의 대금·보증금까지 정확히 대조하므로 계좌 범위 안에 있다는 이유만으로 출처 없는 예약을 허용하지 않습니다. 기존 제안은 [상호작용](interactions.md), 공동 계좌와 납품은 [조직·장기 계약](organizations.md)에 설명합니다.
+
+거래량은 소유권 이동이며 생산/소비 수지에 더하지 않습니다. 개인 제조 투입과 생활 소비는 서로 다른 목적의 `ResourceConsumed`로 기록합니다. 2인 제조는 실제 입력·출력 이벤트로 한 번 집계하고, 조직 제조는 `Organization::Produced`의 입력·출력을 한 번 집계합니다. 손실은 `Scenario::InventoryLost`에서 별도로 집계합니다. 예약 자산과 공동 지분은 총량에 중복으로 더하지 않습니다.
+
+`earned`는 실제 중앙·협상·납품의 누적 판매 대금, `spent`는 누적 구매 대금입니다. 출자·배당·탈퇴 반환·보상·세금·재분배는 `transfers_in/out`으로 구분합니다. 계좌 자산은 `wallet + Σ(inventory × latest_price)`이며 개인의 분포 지표는 공동 지분을 더합니다. 정부 금고는 총 화폐·총 평가 자산에 포함하지만 개인 Gini·평균·분위수에서는 제외합니다. 빈 사회나 전체 개인 자산이 0이면 Gini도 0입니다. 매출과 지출의 차이는 원가를 배분한 회계 이익이 아닙니다.
+

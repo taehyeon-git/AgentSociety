@@ -1,0 +1,10 @@
+/target/
+/runs/
+/.build-cache/
+/.cargo/config.toml
+.env
+.env.*
+!.env.example
+*.sqlite-wal
+*.sqlite-shm
+

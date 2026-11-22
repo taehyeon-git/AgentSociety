@@ -1,0 +1,7 @@
+{
+  "name": "policy_after_checkpoint",
+  "events": [
+    { "tick": 501, "label": "Change future fiscal policy", "intervention": { "kind": "fiscal", "policy": { "sales_tax_bps": 1500, "cash_levy_bps": 100, "redistribution_bps": 10000, "period": 10 } } },
+    { "tick": 550, "label": "Temporary food supply expansion", "intervention": { "kind": "supply", "resource": "food", "regeneration_bps": 15000, "duration": 100 } }
+  ]
+}

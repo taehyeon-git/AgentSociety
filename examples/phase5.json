@@ -1,0 +1,10 @@
+{
+  "agents": 100,
+  "seed": 42,
+  "interactions": {
+    "negotiation": true,
+    "cooperation": true,
+    "offer_lifetime_ticks": 4,
+    "goal_review_interval": 50
+  }
+}

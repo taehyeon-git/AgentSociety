@@ -1,0 +1,18 @@
+[package]
+name = "agentsociety-world"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Seeded ECS world and regional resource capacity"
+
+[dependencies]
+agentsociety-core.workspace = true
+bevy_ecs.workspace = true
+rand.workspace = true
+rand_chacha.workspace = true
+serde.workspace = true
+
+[lints]
+workspace = true
+

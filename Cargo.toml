@@ -1,0 +1,57 @@
+[workspace]
+members = ["crates/core", "crates/world", "crates/economy", "crates/social", "crates/memory", "crates/cognition", "crates/analytics", "crates/simulation", "crates/storage", "apps/cli", "apps/desktop"]
+resolver = "3"
+
+[workspace.package]
+version = "0.6.0"
+edition = "2024"
+rust-version = "1.95"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+agentsociety-core = { path = "crates/core" }
+agentsociety-world = { path = "crates/world" }
+agentsociety-economy = { path = "crates/economy" }
+agentsociety-social = { path = "crates/social" }
+agentsociety-memory = { path = "crates/memory" }
+agentsociety-cognition = { path = "crates/cognition" }
+agentsociety-analytics = { path = "crates/analytics" }
+agentsociety-simulation = { path = "crates/simulation" }
+agentsociety-storage = { path = "crates/storage" }
+bevy_ecs = { version = "=0.19.1", default-features = false, features = ["std"] }
+rand = { version = "=0.9.5", default-features = false, features = ["std"] }
+rand_chacha = { version = "=0.9.0", features = ["serde"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.151", features = ["float_roundtrip"] }
+thiserror = "2.0.19"
+anyhow = "1.0.104"
+clap = { version = "4.6.5", features = ["derive"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+tempfile = "3.27.0"
+petgraph = { version = "=0.8.3", default-features = false, features = ["std", "graphmap"] }
+eframe = { version = "=0.33.3", default-features = false, features = ["default_fonts", "glow", "x11", "wayland"] }
+egui_plot = "=0.34.0"
+tokio = { version = "=1.53.1", features = ["rt", "time", "sync", "net"] }
+reqwest = { version = "=0.12.28", default-features = false, features = ["json", "rustls-tls"] }
+url = "=2.5.8"
+rusqlite = { version = "=0.41.1", default-features = false, features = ["bundled", "fallible_uint"] }
+sha2 = "=0.10.9"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+all = "warn"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+# Allocation tracing stays in a separate example executable. Normal CLI/GUI
+# builds keep the system allocator and their original release profile.
+[profile.profiling]
+inherits = "release"
+debug = 1
+

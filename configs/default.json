@@ -1,0 +1,13 @@
+{
+  "agents": 100,
+  "seed": 42,
+  "initial_cash": 10000,
+  "initial_prices": [100, 70, 120, 400],
+  "map_width": 100,
+  "map_height": 100,
+  "history_capacity": 16,
+  "relationship_capacity": 64,
+  "memory_capacity": 64,
+  "policy": "rule_based",
+  "llm_agents": 4
+}

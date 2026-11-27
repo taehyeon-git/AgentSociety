@@ -398,8 +398,9 @@ impl Simulation {
             let offset = ((tick - 1) % decisions.len() as u64) as usize;
             decisions.rotate_left(offset);
         }
-        // All policies observe the same completed boundary. Expired collateral is
-        // released before any intent executes, so action ordering cannot revive it.
+        // Rules observe this tick's scenario changes; external requests used the
+        // previous completed state. Every intent is revalidated below. Release
+        // expired collateral first so action ordering cannot revive it.
         events.extend(self.proposals.expire(&mut self.world, tick)?);
         events.extend(self.institutions.expire(&mut self.world, tick)?);
         for (id, selected) in decisions {

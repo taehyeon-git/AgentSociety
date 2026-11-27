@@ -22,3 +22,15 @@ cargo run --release -p agentsociety-desktop -- --config examples/complete.json
 Inspector에서 개인의 공동 지분·공동 재고·대표·회원과 납품 계약의 남은 횟수·기한·보증금을 확인합니다. Economy에는 공동 생산, 계약 이행/불이행, 정부 금고, 누적 세금·재분배와 공급 충격을 표시합니다. Timeline은 Organizations, Contracts, Scenario 필터를 제공하며 선택한 개인과 관련된 공동 계약도 조회합니다.
 
 화면은 최근 통계 600개와 이벤트 1,500개를 유지합니다. 파일에서 복원하면 차트는 해당 완료 상태부터 다시 쌓고 과거 전체 로그를 화면으로 가져오지는 않습니다. 장기 이력은 CLI `inspect`·`replay`를 사용합니다.
+
+## 검증 방법
+
+`cargo test -p agentsociety-desktop --all-features`는 egui에 실제 포인터 누름·뗌과 키보드 이벤트를 전달하여 제어 버튼, 설정 재시작, 파일 선택·저장·교체 취소·불러오기·실패 보존·분기를 검사합니다. OS 창에 직접 마우스를 보내는 테스트와는 구분합니다. worker 테스트는 외부 정책의 예산 보존도 확인합니다.
+
+네이티브 렌더러의 실행·진행·종료 검사는 다음과 같습니다.
+
+```sh
+cargo run --release -p agentsociety-desktop -- --config examples/complete.json --auto-start --exit-after-ticks 60
+```
+
+수동 점검 시에는 `Social behavior`의 설정을 바꾸고 `Restart` → `Step`을 실행한 뒤, 체크포인트 저장 → 추가 Step → 저장 파일 불러오기로 Tick이 복원되는지 확인합니다. 기존 파일 저장 시 `Cancel`이 파일을 보존하는지, 잘못된 파일 불러오기 후 기존 실행을 계속할 수 있는지도 확인합니다. 수행한 검증과 미확인 환경 범위는 [검증 기록](validation.md)에 남깁니다.

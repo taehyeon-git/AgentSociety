@@ -107,7 +107,7 @@ cargo run --release -p agentsociety-cli -- inspect runs/save/run.sqlite --agent 
 
 규칙 전용 `--state-out` 파일도 복원할 수 있습니다. LLM 실행을 이어가려면 예산·호출 간격이 포함된 체크포인트나 SQLite가 필요합니다. 외부 모델이 포함된 기록도 `replay`에서는 HTTP feature나 API 키 없이 검증합니다. 출력은 기본적으로 기존 파일을 보호하며 `--overwrite`는 명시한 파일에만 적용합니다. 기존 SQLite는 덮어쓰지 않고 `resume`으로 이어갑니다.
 
-현재 엔진은 **0.6.0**, 상태/이벤트 포맷은 **6**입니다. v0.5 등 이전 출력의 복원·마이그레이션은 지원하지 않습니다. 이전 CLI 실행 파일은 `.build-cache/releases/0.5.0/agentsociety-cli.exe`에 보관했습니다. JSONL은 완료 footer가 있어야 검증할 수 있고, 비정상 종료 후의 확정 Tick 복구에는 SQLite를 사용합니다. 형식과 실패 처리 계약은 [저장·복원](docs/persistence.md)에 있습니다.
+현재 엔진은 **0.6.0**, 상태/이벤트 포맷은 **6**입니다. v0.5 등 이전 출력의 복원·마이그레이션은 지원하지 않습니다. 이전 CLI 실행 파일은 로컬 검증 환경의 `.build-cache/releases/0.5.0/agentsociety-cli.exe`에만 보관했으며 저장소에는 포함하지 않습니다. JSONL은 완료 footer가 있어야 검증할 수 있고, 비정상 종료 후의 확정 Tick 복구에는 SQLite를 사용합니다. 형식과 실패 처리 계약은 [저장·복원](docs/persistence.md)에 있습니다.
 
 ## 여러 조건의 실험 비교
 
@@ -144,6 +144,14 @@ cargo test --workspace --all-features --locked
 cargo build --workspace --all-features --release --locked
 ```
 
+Release CLI의 저장·복원·재생·분기·시나리오 비교를 한 번에 검증하려면 PowerShell 7.2 이상에서 다음을 실행합니다. 새 출력 폴더만 허용하며, 실패하면 즉시 중단하고 명령과 오류 로그를 보존합니다.
+
+```powershell
+.\scripts\verify-release.ps1
+```
+
+이 스크립트는 100명·1,000 Tick 연속 실행과 파일/SQLite 재개, JSONL/SQLite Replay의 전체 상태 SHA-256을 비교합니다. 같은 500 Tick 상태에서 미래 시나리오를 분기하고 두 기록 형식을 재생하며, 원본 보존과 시나리오 3개 × 시드 3개의 실험 결과도 확인합니다. 성공 증거는 출력 폴더의 `verification.json`, 실행 명령은 `commands.json`입니다. 성능 측정은 아래 벤치마크 스크립트로 별도 수행합니다.
+
 Windows에서 실행 파일의 CPU 시간·작업집합과 Tick별 구간 시간을 측정하려면 Release 빌드 후 다음 스크립트를 사용합니다. 같은 출력 디렉터리의 같은 이름 측정 파일은 갱신됩니다.
 
 ```powershell
@@ -151,11 +159,12 @@ Windows에서 실행 파일의 CPU 시간·작업집합과 Tick별 구간 시간
 .\scripts\benchmark.ps1 -Population 100 -WithEvents
 .\scripts\benchmark.ps1 -Repetitions 3 -OutputDirectory runs\benchmarks\phase4
 .\scripts\benchmark.ps1 -Config examples\phase5.json -Repetitions 3 -OutputDirectory runs\benchmarks\phase5
+.\scripts\benchmark.ps1 -Config examples\complete.json -Population 100,1000 -Repetitions 3 -OutputDirectory runs\benchmarks\complete
 ```
 
 테스트는 각 crate와 앱의 `tests/`에 배치합니다. 100명·1,000 Tick 연속 실행, 이벤트 단위 결정론, 화폐/자원 보존, 주문 예약·부분 체결·만료, 잘못된 행동, 기억 검색/보관, worker 제어와 CLI 파일 출력을 검사합니다. LLM 테스트는 Rust로 작성한 로컬 HTTP 서버로 실제 어댑터·타임아웃·동시성·예산·대체·결정 재적용을 검증합니다. 실제 유료 API나 설치된 Ollama 모델을 호출하지 않습니다.
 
-2026-11-10 v0.5.0 검증에서 기본 구성 **103개**, 전체 기능 구성 **120개** 테스트가 통과했습니다. 새 기능을 켠 100명·1,000 Tick에서 협상 거래 2,685건, 공동 생산 250건, 목표 변경 182건이 발생했고, 연속 실행·파일/SQLite 복원·JSONL/SQLite Replay의 전체 상태가 같았습니다. 1,000명·1,000 Tick의 새 기능 포함 Release 실행은 3회 중앙값 **4.06초**였습니다. GUI 자동 60 Tick 실행·종료는 통과했고 초기 화면을 확인했으나 클릭 검증은 창 활성화 도구 오류로 완료하지 못했습니다. 측정 조건·한계와 이전 버전 이력은 [검증 기록](docs/validation.md)에 있습니다.
+2026-11-27 v0.6.0 검증에서 기본 구성 **124개**, 전체 기능 구성 **143개** 테스트와 두 구성의 Clippy, Release 빌드가 통과했습니다. 전체 기능을 켠 100명·1,000 Tick의 연속 실행·파일/SQLite 재개·JSONL/SQLite Replay가 바이트 단위로 일치했습니다. 미래 시나리오 분기와 두 Replay의 일치·원본 보존, 3개 시나리오 × 3개 시드의 9개 실험도 확인했습니다. 1,000명·1,000 Tick의 3회 중앙값은 기본 모델 **3.71초**, 조직·시나리오를 켠 전체 모델 **18.07초**였습니다. 네이티브 GUI 자동 60 Tick 실행·종료는 통과했습니다. OS 실제 클릭 검증은 자동화 도구 시간 초과로 미완료이며, egui 포인터/키보드 입력 테스트와 구분합니다. 테스트·성능 수치, 측정 조건과 이전 버전 이력은 [검증 기록](docs/validation.md)에 있습니다.
 
 힙 할당을 추적하려면 `cargo run -p agentsociety-cli --profile profiling --example heap_profile -- --agents 100 --ticks 50 --out runs/profiles/heap.json`을 사용합니다. 이 독립 예제만 DHAT allocator를 사용하며 추적 시간은 일반 실행 속도와 구분합니다. 원시 스택 분석과 지표 정의는 [실험·성능 측정](docs/experiments.md)에 있습니다.
 

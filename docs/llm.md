@@ -23,6 +23,8 @@ OpenAI 호환 예시는 `examples/llm-openai-compatible.json`입니다. 기본 �
 
 완료 Tick T의 상태를 읽어 T+1용 요청을 만듭니다. 응답을 기다리는 동안 월드를 변경하지 않습니다. 결과는 `BTreeMap<AgentId, ExternalDecision>`으로 모아 AgentId 순서로 기록합니다. 비동기 완료 순서에 따라 정산 순서가 달라지지 않습니다.
 
+T+1에 예정된 시나리오 개입은 외부 응답 수집 뒤 Tick 시작에 적용합니다. 규칙 정책은 개입 뒤 상태에서 결정하므로 재고 손실 Tick에는 LLM이 본 가용 자산과 차이가 생길 수 있습니다. 승인된 외부 의도도 개입 뒤 실제 계좌에서 다시 검증하며, 유효하지 않으면 `ActionRejected`로 남습니다. 공급자 단계의 실패에 대한 규칙 대체와 실제 적용 단계의 행동 거절을 구분합니다.
+
 배치 전체에 하나의 마감 시간을 적용합니다. 동시성 슬롯을 기다리는 요청도 같은 마감 시간에 취소되며, 늦은 결과를 이후 Tick에 적용하지 않습니다. GUI는 별도 worker에서 이 과정을 실행하므로 화면 읽기와 렌더링이 HTTP에 잠기지 않습니다. Pause/Restart는 현재 배치와 Tick이 끝나는 경계에서 처리됩니다.
 
 ## 한도와 응답 검증
@@ -41,6 +43,8 @@ OpenAI 호환 예시는 `examples/llm-openai-compatible.json`입니다. 기본 �
 
 관찰에는 본인 상태와 목표 성과 구간, 시장 가격·수요·공급, 최근 결정 최대 4개, 관련 기억 최대 16개, 주요 관계 최대 4개를 포함합니다. 협상·협력이 켜져 있으면 본인의 응답 가능한 제안 최대 4개와 상대의 공개 요약 최대 8개도 제공합니다. 전체 에이전트의 기억이나 월드를 보내지 않습니다. 관찰 JSON은 최대 32KiB, HTTP 응답은 최대 64KiB, 짧은 설명은 최대 512자입니다.
 
+v0.6에서 `organizations.enabled`를 켜면 조직 관찰에 정관 설정·본인 조직과 공개 조직 최대 8개·개인 계약 상대 최대 8명·관련 계약 최대 8개를 포함합니다. 공개 조직은 ID·대표·회원 ID·가용 현금·재고·열린 계약 수를, 개인 상대는 ID·직업·가용 현금·재고·에너지·식량 목표량·열린 계약 수를 제공합니다. 일반 회원은 개인 계약을 보고 대표는 조직 계약도 봅니다. 이 관찰은 규칙 정책과 같은 제한을 사용하며 타인의 전체 계좌 이력이나 기억은 포함하지 않습니다. 별도 `environment`에는 현재 공급 배율·종료 시점, 재정 규칙, 정부 금고 잔액을 제공합니다. 미래 개입 전체 목록은 전달하지 않습니다. 조직·시나리오 정보도 같은 32KiB 제한 안에 들어가며 초과하면 규칙으로 대체합니다.
+
 모델의 응답 형식은 다음과 같습니다.
 
 ```json
@@ -50,7 +54,7 @@ OpenAI 호환 예시는 `examples/llm-openai-compatible.json`입니다. 기본 �
 }
 ```
 
-마크다운 코드 블록, 알 수 없는 필드·행동, 잘못된 타입, 음수 수량, 긴 설명을 거절합니다. 기본 행동은 `produce/gather/consume/buy/sell/move/rest/wait`이며 활성화된 기능에 한해 `negotiate/counter_offer/accept_proposal/reject_proposal/cancel_proposal/cooperate`도 검증합니다. 구조 검증 다음에는 관찰한 월드의 현금·재고·직업·에너지·좌표와 제안의 역할·기한·한도를 확인합니다. 실제 적용 시 엔진이 다시 검증하므로 여러 에이전트의 행동이 공유 자원에 충돌해도 검사를 우회하지 않습니다. 이 마지막 검사에서 거절될 수 있으므로 외부 결과의 `accepted`는 거래 체결이나 모든 행동의 실행 성공을 뜻하지 않습니다. 새 행동 JSON과 경제적 의미는 [상호작용 문서](interactions.md)에 있습니다.
+마크다운 코드 블록, 알 수 없는 필드·행동, 잘못된 타입, 음수 수량, 긴 설명을 거절합니다. 기본 행동은 `produce/gather/consume/buy/sell/move/rest/wait`이며 활성화된 기능에 한해 `negotiate/counter_offer/accept_proposal/reject_proposal/cancel_proposal/cooperate`와 `institution`도 검증합니다. `institution.operation.kind`는 `found/join/leave/contribute/distribute/offer_contract/accept_contract/reject_contract/cancel_contract`입니다. 구조 검증 다음에는 관찰한 월드의 현금·재고·직업·에너지·좌표, 제안의 역할·기한·한도, 조직 대표 권한·회원 자격과 계약 담보를 확인합니다. 실제 적용 시 엔진이 다시 검증하므로 여러 에이전트의 행동이 공유 자원에 충돌해도 검사를 우회하지 않습니다. 이 마지막 검사에서 거절될 수 있으므로 외부 결과의 `accepted`는 거래 체결이나 모든 행동의 실행 성공을 뜻하지 않습니다. 행동 JSON과 경제적 의미는 [상호작용](interactions.md)과 [조직·계약](organizations.md) 문서에 있습니다.
 
 실패 사유는 `invalid_response`, `invalid_action`, `timeout`, `provider_error`, `budget_exhausted`로 기록합니다. 원본 HTTP 오류 본문, Authorization 헤더, 키는 저장하지 않습니다. 공급자가 JSON 모드를 지원하지 않는 등 프로토콜이 맞지 않아도 규칙 대체로 처리합니다.
 
@@ -60,7 +64,7 @@ OpenAI 호환 예시는 `examples/llm-openai-compatible.json`입니다. 기본 �
 
 `Simulation::step_with_decision_batch`로 같은 배치를 다시 적용하면 모델을 호출하지 않고 같은 이벤트·경제 상태·기억을 재현할 수 있습니다. 이 API는 `llm` feature가 없는 빌드에도 존재합니다. 오래됐거나 미래인 대상 Tick, 다른 AgentId, 결과와 Decision의 모순은 월드를 바꾸기 전에 거절합니다.
 
-CLI `replay <JSONL 또는 SQLite>`는 기록한 외부 결과와 실제 결정을 사용하고 모든 재생성 이벤트·최종 상태를 비교합니다. HTTP feature, 서버, API 키가 필요하지 않습니다. 체크포인트와 SQLite에서 `resume`할 때는 공급자 설정, 누적 예산, 마지막 요청 Tick을 복원합니다. 따라서 이어 실행이 요청 예산을 다시 채우거나 호출 간격을 건너뛰지 않습니다. 새로운 외부 호출을 위해서는 `llm` feature와 해당 환경변수 자격증명이 필요합니다. 키 값은 저장하지 않고 `api_key_env` 이름만 저장합니다.
+CLI `replay <JSONL 또는 SQLite>`는 기록한 외부 결과와 실제 결정을 사용하고 모든 재생성 이벤트·최종 상태를 비교합니다. HTTP feature, 서버, API 키가 필요하지 않습니다. 체크포인트와 SQLite에서 `resume`할 때는 공급자 설정, 누적 예산, 마지막 요청 Tick을 복원합니다. 따라서 이어 실행이 요청 예산을 다시 채우거나 호출 간격을 건너뛰지 않습니다. v0.6의 미래 시나리오 분기와 GUI 복원·분기도 이 호출 상태를 유지합니다. 새로운 외부 호출을 위해서는 `llm` feature와 해당 환경변수 자격증명이 필요합니다. 키 값은 저장하지 않고 `api_key_env` 이름만 저장합니다.
 
 `--state-out`만으로는 외부 정책의 호출 이력을 복원할 수 없으므로 `--checkpoint-out` 또는 `--database`를 사용합니다. `resume --llm-config`를 지정한다면 저장한 설정과 정확히 같아야 합니다. 복원 후 공급자나 예산을 변경하는 분기 실행은 아직 지원하지 않습니다. [저장·복원](persistence.md)에 명령 예시와 손상 처리 범위를 설명합니다.
 

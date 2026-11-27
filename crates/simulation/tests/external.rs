@@ -137,6 +137,79 @@ fn recorded_accepted_actions_still_pass_economic_validation() {
 }
 
 #[test]
+fn inventory_shock_revalidates_accepted_external_intent_and_replays_exactly() {
+    let config = SimulationConfig {
+        agents: 1,
+        scenario: ScenarioConfig {
+            name: "external-inventory-shock".into(),
+            events: vec![ScheduledIntervention {
+                tick: 1,
+                label: "Destroy unreserved food before execution".into(),
+                intervention: Intervention::InventoryLoss {
+                    resource: Resource::Food,
+                    fraction_bps: 10000,
+                },
+            }],
+        },
+        ..Default::default()
+    };
+    let action = Action::Sell {
+        resource: Resource::Food,
+        quantity: 1,
+        limit_price: config.initial_prices[Resource::Food.index()],
+    };
+    let mut sim = Simulation::new(config).unwrap();
+    let mut replay = Simulation::from_snapshot(sim.snapshot().unwrap()).unwrap();
+    let food_before = sim
+        .world()
+        .agent(AgentId(0))
+        .unwrap()
+        .account
+        .available(Resource::Food);
+    // The adapter accepts against the completed world, before the scheduled shock.
+    agentsociety_economy::validate_action(sim.world(), AgentId(0), &action).unwrap();
+    let mut input = batch(1);
+    input
+        .decisions
+        .get_mut(&AgentId(0))
+        .unwrap()
+        .decision
+        .as_mut()
+        .unwrap()
+        .action = action.clone();
+
+    let report = sim.step_with_decision_batch(&input).unwrap();
+    assert_eq!(
+        report.stats.flows.destroyed[Resource::Food.index()],
+        u128::from(food_before)
+    );
+    assert_eq!(report.stats.flows.rejected_actions, 1);
+    assert_eq!(report.stats.flows.trade_count, 0);
+    assert!(report.events.iter().any(|record| matches!(
+        &record.event,
+        Event::ExternalDecisionRecorded { result } if result == &input.decisions[&AgentId(0)]
+    )));
+    assert!(report.events.iter().any(|record| matches!(
+        &record.event,
+        Event::ActionRejected { agent_id, .. } if *agent_id == AgentId(0)
+    )));
+    let agent = sim.world().agent(AgentId(0)).unwrap();
+    assert_eq!(agent.account.available(Resource::Food), 0);
+    let attempted = agent.history.back().unwrap();
+    assert_eq!(attempted.decision.action, action);
+    assert!(!attempted.accepted);
+    assert_eq!(
+        report.stats.total_money,
+        sim.snapshot().unwrap().baseline.total_money
+    );
+
+    let records: Vec<EventRecord> =
+        serde_json::from_slice(&serde_json::to_vec(&report.events).unwrap()).unwrap();
+    assert_eq!(replay.replay_tick(&records).unwrap().events, records);
+    assert_eq!(sim.snapshot().unwrap(), replay.snapshot().unwrap());
+}
+
+#[test]
 fn an_unconfigured_runtime_does_not_silently_claim_to_run_llm_agents() {
     let config = SimulationConfig {
         policy: PolicyKind::Llm,

@@ -1,5 +1,72 @@
 # 검증 기록
 
+## 2026-11-27 — v0.6 조직·시나리오·저장 흐름 재검증
+
+엔진 **0.6.0**, 상태·이벤트 포맷 **6**입니다. 현재 도구 체인은 Rust/Cargo **1.100.0**, Windows x64입니다. 아래 이력의 v0.5 수치와 구분합니다. 소스와 문서는 공개 저장소에 보관하고, 대용량 이벤트·SQLite·빌드·측정 원본은 `.gitignore`의 `runs/`와 `target/` 아래에 보관합니다.
+
+### 빌드와 자동 테스트
+
+기본 구성 테스트 **124개**, 전체 기능 구성 테스트 **143개**가 통과했고, 실패·무시 테스트는 0개입니다. 기본 구성과 전체 기능 구성 모두 `cargo clippy --workspace --all-targets ... -- -D warnings`를 통과했습니다. 로그는 `runs/final-20261127/tests-default-final.log`, `tests-all.log`, `clippy-default.log`, `clippy-all.log`입니다. 기존 123/142개 테스트에 외부 의도·시나리오 충격·Replay 경계 회귀 1개를 추가했습니다. 마지막 `cargo fmt --all -- --check`도 통과했습니다 (`fmt-final.log`). `cargo build --workspace --all-features --release --offline --locked`도 성공했습니다 (`build-release.log`).
+
+Rust 1.100으로 변경되어 의존성을 다시 빌드했습니다. 제한 환경에서 기본 구성 재빌드가 장시간 지연되어 그 실행을 중단했고, 동일한 오프라인·잠금 의존성 명령을 제한 밖에서 재실행한 최종 로그만 완료 근거로 사용합니다. 중단 로그 `tests-default.log`와 최종 통과 로그를 구분합니다.
+
+### 연속 실행과 복원·재생
+
+`examples/complete.json`, 100명, seed 42, 1,000 Tick을 실행했습니다. 협상 거래 1,796건, 2인 공동 생산 38건, 목표 변경 211건, 조직 15개, 다자 공동 생산 1,788건, 계약 납품 1,499건·불이행 85건, 세금 447,711·재분배 444,898·금고 2,813을 기록했습니다. 최종 기아 인원은 0명, Gini는 0.5286522006144481입니다. 이는 이 시드·모델의 관측 결과이며 정책의 일반적인 우월성을 뜻하지 않습니다.
+
+다음 다섯 경로의 전체 상태 파일 SHA-256이 모두 `d2d89fd4da1badc9a8bf6a4e526326be922d45d6212776d9d89339608bf6eb98`로 일치했습니다.
+
+1. 1,000 Tick 연속 실행
+2. 500 Tick 체크포인트에서 추가 500 Tick
+3. 500 Tick SQLite의 독립 복사본에서 추가 500 Tick
+4. 연속 실행 JSONL의 전체 Replay
+5. 이어 실행한 SQLite의 전체 Replay
+
+두 Replay는 각각 1,000 Tick·420,515개 이벤트를 검증했습니다. Replay가 계산한 compact JSON 상태 SHA-256은 `f171efb78cf6a99da5d7a920cf21b8f4cbf4d3507144b75e4330535f3a2f4061`입니다. 내보낸 파일은 pretty JSON이므로 파일 바이트의 해시와 구분해야 합니다.
+
+재현 명령은 `scripts/verify-release.ps1`에 있습니다. 기존 출력 디렉터리를 거절하고, 실패 시 즉시 중단하며, 소스 체크포인트·SQLite·입력 설정·실행 파일의 불변성도 확인합니다. 상세 원본 위치는 `runs/final-20261127/release-final/`입니다.
+
+### 시나리오 분기와 비교 실험
+
+500 Tick 체크포인트에서 `branch-after-500.json`으로 미래 일정만 교체하여 500 Tick을 추가했습니다. 새 JSONL/SQLite의 Replay는 각각 500 Tick·213,473개 이벤트를 검증했고, 분기 상태와 두 Replay 상태의 파일 SHA-256은 `4c7e146374cd5c7b0c3ecb1652c46b5557c7617ccc20f360e6373d751486d6f0`로 일치했습니다. 원본 체크포인트와 원본 SQLite의 해시는 실행 전후 그대로였습니다. 분기 결과는 기존 일정 결과와 다릅니다.
+
+100명·1,000 Tick, 규칙 정책, 시드 42·43·44로 다음 3개 조건을 교차한 **9개 실행**이 모두 완료됐습니다. 비교는 시나리오별 3회 평균이며 통계적 유의성을 검증한 인과 추정이 아닙니다.
+
+| 시나리오 | 평균 Gini | 평균 개인 평가 자산 |
+| --- | ---: | ---: |
+| 개입 없음 (baseline) | 0.440691 | 37,785.52 |
+| 공급·재고 위기 (crisis) | 0.434584 | 38,844.20 |
+| 위기·세금·재분배 (redistribution) | 0.495901 | 25,541.03 |
+
+9개 조합의 완료 Tick·인구·정책·시드·시나리오 이름, 체크포인트 존재, 상태 해시와 CSV 9행을 확인했습니다. 가격이 평가 자산에 영향을 주므로, 위기 조건의 평균 자산이 높다는 이유만으로 생활 수준이 개선됐다고 해석할 수 없습니다. 모든 명령은 종료 코드 0이며 자세한 지표는 `release-final/matrix/report.json`과 `verification.json`에 있습니다.
+
+### Release 성능 반복 측정
+
+Rust 1.100으로 새로 만든 전체 기능 Release CLI를 사용했습니다. 다른 빌드·실험과 겹치지 않게 각 조건을 순서대로 3회 실행했습니다. seed 42, 1,000 Tick, 규칙 정책, JSONL 기록 없음이며 아래 시간은 엔진의 `performance.elapsed_ms`입니다. 프로세스 시작 시간과 빌드 시간은 포함하지 않습니다.
+
+| 구성 | 인구 | 중앙값 | 최소~최대 | 3회 중 최대 관측 작업집합 |
+| --- | ---: | ---: | ---: | ---: |
+| `examples/complete.json` | 100 | 1.53초 | 1.35~1.91초 | 9.63 MiB |
+| `examples/complete.json` | 1,000 | 18.07초 | 17.26~19.19초 | 32.48 MiB |
+| 기본 구성 (조직·개입 없음) | 1,000 | 3.71초 | 3.42~3.89초 | 29.92 MiB |
+
+전체 기능 조건은 조직·계약·시나리오·적응 등 수행하는 작업이 더 많으므로 기본 조건과 동일한 작업량의 속도 비교가 아닙니다. 1,000명 전체 기능 조건은 세 실행 모두 96,773건의 거래를 기록했습니다. 작업집합은 Windows 프로세스를 약 10ms 간격으로 관측한 값이며 힙 할당량과 다릅니다. 환경별 속도를 보장하는 수치가 아니고, 앞선 버전의 다른 기능 구성과도 직접 비교하지 않습니다.
+
+원본은 `runs/final-20261127/benchmarks-enabled/baseline-measurements.json`, `benchmarks-default/baseline-measurements.json`과 각 실행 요약에 있습니다. 다음 명령으로 재현합니다.
+
+```powershell
+.\scripts\benchmark.ps1 -Config examples/complete.json -Population 100,1000 -Ticks 1000 -Repetitions 3 -OutputDirectory runs/benchmarks/complete
+.\scripts\benchmark.ps1 -Population 1000 -Ticks 1000 -Repetitions 3 -OutputDirectory runs/benchmarks/default
+```
+
+최종 Release를 대상으로 현재 `verify-release.ps1`도 전체 실행하여 `release-final/verification.json`의 `passed: true`와 10개 명령의 종료 코드 0을 확인했습니다. 이전 빌드와 새 빌드의 전체 상태 파일 해시도 동일합니다. 스크립트의 오류 종료 코드 기록·단일 원소 배열 직렬화·기존 결과 폴더 보호 검사도 별도로 통과했습니다 (`cli-script-checks/checks.json`).
+
+### GUI와 외부 모델 검증 범위
+
+전체 기능 예제로 새 Release 네이티브 GUI를 자동 시작하여 60 Tick 뒤 종료 코드 0, 비어 있는 stderr를 확인했습니다 (`gui-final.*.log`). OS 실제 클릭 검증은 Windows 자동화의 `list_windows`가 반복해서 시간 초과했고, 커널 초기화 및 별도 CUA 연결도 시간 초과하여 완료하지 못했습니다. 이를 통과로 기록하지 않습니다. egui 포인터·키보드 입력 회귀 테스트와 네이티브 렌더러 자동 실행은 각각 별도의 검사입니다.
+
+egui 입력을 통한 재시작·저장·불러오기·실패 보존 및 시나리오 분기 테스트는 통과했습니다. LLM 검증은 로컬 모의 HTTP 서버와 기록된 외부 결정으로 수행합니다. 실제 유료 API 또는 설치된 Ollama 모델의 판단 품질은 검증하지 않습니다. 외부 의도는 직전 완료 상태에서 만들어질 수 있으므로 이후 재고 충격으로 무효가 된 의도의 거절과 Replay 일치를 별도 회귀 테스트로 추가했고 이 테스트도 통과했습니다. 직업 변경·신용·학습 정책·이전 포맷 마이그레이션 등 모델 밖의 범위는 [roadmap.md](roadmap.md)에 명시합니다.
+
 ## 2026-11-10 — Phase 5 협상·공동 생산·목표 적응
 
 엔진 **0.5.0**, 상태/이벤트 포맷 **5**입니다. 체크포인트·SQLite 스키마는 각각 1을 유지합니다. 기본 구성 **103개**, 전체 기능 **120개** 테스트가 통과했으며 실패·무시 테스트는 0개입니다. fmt 검사, 기본/전체 기능 Clippy의 `-D warnings`, 전체 Workspace의 전체 기능 Release 빌드도 통과했습니다. 새로운 외부 의존성은 추가하지 않았습니다.

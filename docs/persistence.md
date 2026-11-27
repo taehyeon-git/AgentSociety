@@ -19,6 +19,10 @@ GUI의 `Load run...`과 공통 `read_run`은 JSON·SQLite·완료 JSONL을 읽�
 
 ## CLI 사용
 
+새 실행에서는 `--config`의 값보다 명시한 `--agents`, `--seed`, `--policy` 등이 우선합니다. 알 수 없는 JSON 설정 키는 오류로 처리합니다. `--ticks`는 이번에 진행할 Tick 수이며, `0`이면 시작 상태만 내보냅니다.
+
+`--summary-out`은 최종 통계·설정·실행 시간을 JSON으로, `--csv`는 Tick별 통계를 CSV로 저장합니다. `--json`을 지정하면 stdout에는 요약 JSON만 출력하고, 진행 상황과 tracing 로그는 stderr로 보냅니다. `--report-every 0`으로 진행 출력을 끌 수 있습니다. `summary.json`의 `performance`는 실행마다 달라지므로 재현 비교에는 `--state-out`의 상태 파일이나 이벤트 로그를 사용합니다.
+
 ```sh
 cargo run --release -p agentsociety-cli -- run --agents 100 --seed 42 --ticks 500 --checkpoint-every 100 --checkpoint-out runs/save/checkpoint.json --database runs/save/run.sqlite --events runs/save/first.jsonl
 cargo run --release -p agentsociety-cli -- resume runs/save/checkpoint.json --ticks 500 --checkpoint-out runs/save/resumed-checkpoint.json --state-out runs/save/resumed-state.json --events runs/save/second.jsonl

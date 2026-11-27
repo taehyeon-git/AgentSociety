@@ -1,4 +1,4 @@
-<h1 align="center">AgentSociety</h1>
+<h1 align="center">🌐 AgentSociety</h1>
 
 <p align="center">
   <strong>에이전트의 선택이 경제와 사회를 만드는 시뮬레이터</strong><br>
@@ -12,10 +12,10 @@
 </p>
 
 <p align="center">
-  <a href="#빠른-시작">빠른 시작</a> ·
-  <a href="#주요-기능">주요 기능</a> ·
-  <a href="#문서">문서</a> ·
-  <a href="#개발-및-검증">개발 및 검증</a>
+  <a href="#-빠른-시작">빠른 시작</a> ·
+  <a href="#-주요-기능">주요 기능</a> ·
+  <a href="#-문서">문서</a> ·
+  <a href="#-개발-및-검증">개발 및 검증</a>
 </p>
 
 ---
@@ -24,7 +24,7 @@
 
 기본 규칙 모드는 **API 키나 LLM 없이 오프라인으로 실행**됩니다. 필요할 때 Ollama 또는 OpenAI 호환 모델을 연결할 수 있습니다.
 
-## 빠른 시작
+## 🚀 빠른 시작
 
 **준비:** Rust **1.95 이상**과 C 컴파일러가 필요합니다. Windows는 C++ Build Tools와 Windows SDK, Linux/macOS는 해당 플랫폼의 네이티브 빌드 도구를 사용합니다. 첫 빌드에는 의존성 다운로드가 필요합니다.
 
@@ -33,7 +33,7 @@ git clone https://github.com/taehyeon-git/AgentSociety.git
 cd AgentSociety
 ```
 
-### 데스크톱에서 둘러보기
+### 🖥️ 데스크톱에서 둘러보기
 
 ```sh
 cargo run --release --locked -p agentsociety-desktop -- --config examples/complete.json
@@ -43,7 +43,7 @@ cargo run --release --locked -p agentsociety-desktop -- --config examples/comple
 
 저장·불러오기와 시나리오 변경은 [데스크톱 사용법](docs/desktop.md)을 참고하세요.
 
-### 터미널에서 실행하기
+### ⌨️ 터미널에서 실행하기
 
 ```sh
 cargo run --release --locked -p agentsociety-cli -- run --config examples/complete.json --ticks 1000
@@ -53,7 +53,7 @@ cargo run --release --locked -p agentsociety-cli -- run --config examples/comple
 
 > **설정 선택** — [complete.json](examples/complete.json)은 협상·목표 적응·조직·계약·시나리오를 함께 켠 예제입니다. 가벼운 실행은 [tiny.json](examples/tiny.json), 확장 기능을 끈 기본 모델은 [default.json](configs/default.json)을 사용하세요.
 
-## 주요 기능
+## ✨ 주요 기능
 
 | 영역 | 할 수 있는 일 |
 | :--- | :--- |
@@ -67,7 +67,7 @@ cargo run --release --locked -p agentsociety-cli -- run --config examples/comple
 매 Tick 화폐·자원 수지와 예약·정산 상태를 검사합니다. 재현 비교에는 같은 엔진·의존성 버전, 설정·시드·외부 결정 입력을 사용하며, 실행 시간은 비교 대상에서 제외합니다. [Tick과 재현 규칙 →](docs/simulation.md)
 
 <details>
-<summary><strong>저장한 실행 이어가기와 Replay</strong></summary>
+<summary><strong>💾 저장한 실행 이어가기와 Replay</strong></summary>
 
 ```sh
 cargo run --release --locked -p agentsociety-cli -- run --config examples/complete.json --ticks 500 --checkpoint-out runs/demo/checkpoint.json --events runs/demo/events.jsonl
@@ -82,7 +82,7 @@ SQLite 복구, 출력 형식과 버전 호환성은 [저장·복원](docs/persis
 </details>
 
 <details>
-<summary><strong>선택적으로 LLM 연결하기</strong></summary>
+<summary><strong>🤖 선택적으로 LLM 연결하기</strong></summary>
 
 ```sh
 cargo run --release --locked -p agentsociety-cli --features llm -- --agents 100 --ticks 100 --policy hybrid --llm-agents 4 --llm-config examples/llm-ollama.json
@@ -94,7 +94,7 @@ Ollama 서버를 실행하고 [설정 파일](examples/llm-ollama.json)의 `mode
 
 </details>
 
-## 문서
+## 📚 문서
 
 관심 있는 주제부터 읽을 수 있도록 나누었습니다.
 
@@ -108,7 +108,7 @@ Ollama 서버를 실행하고 [설정 파일](examples/llm-ollama.json)의 `mode
 
 현재 엔진은 **0.6.0**, 상태·이벤트 포맷은 **6**입니다. 이전 버전 출력의 자동 변환은 지원하지 않습니다. 모델의 가정과 결과 해석 범위는 [경제 모델](docs/economy.md)에 설명합니다.
 
-## 개발 및 검증
+## 🔧 개발 및 검증
 
 ```sh
 cargo fmt --all -- --check
